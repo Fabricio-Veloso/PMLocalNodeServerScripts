@@ -1,12 +1,53 @@
 const puppeteer = require('puppeteer');
-const { waitForElement } = require('./WaitForSelector.js');
+const fs = require('fs'); // Importa o módulo fs para manipulação de arquivos
+require('dotenv').config();
+
+
+// Função para gravar logs em um arquivo
+function logToFile(message) {
+  const logFilePath = 'scrape_log.txt'; // Nome do arquivo de log
+  const timestamp = new Date().toISOString(); // Timestamp para log
+  fs.appendFileSync(logFilePath, `${timestamp} - ${message}\n`, 'utf8'); // Adiciona mensagem ao arquivo de log
+}
+
+async function waitForElement(page, selector, timeout = 5000) {
+  try {
+    await page.waitForSelector(selector, { timeout });
+    logToFile('Seletor encontrado: ' + selector);
+    return true; // Retorna verdadeiro se o seletor for encontrado
+  } catch (error) {
+     logToFile('Timeout atingido: o seletor ' + selector + ' não foi encontrado.'  + selector);
+    return false; // Retorna falso se o seletor não for encontrado
+  }
+}
+
+function clearFiles() {
+  const logFilePath = 'scrape_log.txt';
+  const resultsFilePath = 'resultados.json';
+
+  // Apaga o arquivo de log se existir
+  if (fs.existsSync(logFilePath)) {
+    fs.unlinkSync(logFilePath);
+    logToFile('Arquivo de log apagado.');
+  }
+
+  // Apaga o arquivo de resultados se existir
+  if (fs.existsSync(resultsFilePath)) {
+    fs.unlinkSync(resultsFilePath);
+    logToFile('Arquivo de resultados apagado.');
+  }
+}
 
 (async () => {
 
-  Codigo_de_protocolo_teste = 200245870;
+  clearFiles();
   
-  // Inicia o navegador em modo não-headless (com interface gráfica)
-  const browser = await puppeteer.launch({ headless: false });
+  let data = {};
+  
+  const Codigo_de_protocolo_teste = 200245870;
+  
+  // Lança o puppeteer em modo headless
+  const browser = await puppeteer.launch({ headless: true });
   
   // Abre uma nova página
   const page = await browser.newPage();
@@ -16,33 +57,37 @@ const { waitForElement } = require('./WaitForSelector.js');
   
   // Procura o elemento de login e senha, caso ele seja encontrado, o campo de login é preenchido.
   if (await waitForElement(page, '#username', 5000)) {
-    await page.type('#username', 'fabriciov');
+    await page.type('#username', process.env.SITAC_LOGIN);
+    logToFile('Campo de login preenchido.');
   }
   
   if (await waitForElement(page, '#password', 5000)) {
-    await page.type('#password', 'Anderbag@0Sitac');
+    await page.type('#password', process.env.SITAC_PASSWORD);
+    logToFile('Campo de senha preenchido.');
   }
   
   if (await waitForElement(page, '#submit', 5000)) {
     await page.click('#submit');
+    logToFile('Botão de login clicado.');
   }
-  
   
   if (await waitForElement(page, '#logo_fake', 10000)) {
     await page.goto('https://crea-pe.sitac.com.br/app/view/sight/main?form=PesquisarProtocolo');
+    logToFile('Navegando para a página de pesquisa de protocolo.');
   }
-  
   
   if(await waitForElement(page,'#NUMERO',5000)){
-    await page.type('#NUMERO',Codigo_de_protocolo_teste.toString());
+    await page.type('#NUMERO', Codigo_de_protocolo_teste.toString());
+    logToFile(`Número de protocolo ${Codigo_de_protocolo_teste} inserido.`);
   }
-  
   
   if(await waitForElement(page,'.botao_ver_todos_dados',5000)){
     await page.click('.botao_ver_todos_dados');
+    logToFile('Botão para ver todos os dados clicado.');
   }
   
   if (await waitForElement(page, '.ESPACAMENTO', 5000)) {
+    logToFile('Div de cabeçalho encontrada');
     const espancamentoData = await page.evaluate(() => {
       const elements = Array.from(document.querySelectorAll('.ESPACAMENTO'));
       
@@ -55,38 +100,48 @@ const { waitForElement } = require('./WaitForSelector.js');
         }
       }).filter(item => item); // Remove elementos nulos ou indefinidos
     });
-  
-    console.log(espancamentoData.join('\n')); // Imprime os dados no formato desejado
+    logToFile('Dados de cabeçalho recolhidos');
+    if (espancamentoData.length > 0) {
+      data.espancamentoData = espancamentoData;
+    }
   }
   
-
-
+  // Aguarda o carregamento do menu de movimentação
   if(await waitForElement(page,'#ResultAjax_movimento',60000)){
+    const divElement = await page.$('#ResultAjax_movimento');
+    
+    const selectElement = await divElement.$('select');
+    
+    // Seleciona o valor -1 para mostrar todas as movimentações
+    if (selectElement) {
+      await page.evaluate(select => {
+          select.value = '-1'; // Define o valor do select para "Todos"
+          select.dispatchEvent(new Event('change')); // Dispara o evento change para aplicar a seleção
+      }, selectElement);
+    } else {
+      logToFile('Elemento select não encontrado dentro da div.');
+    }
+    
+    // Avalia a tabela de movimentações
     const tableData = await page.evaluate(() => {
-      const rows = Array.from(document.querySelectorAll('tbody tr'));
+      const table = document.querySelector('#ResultAjax_movimento');
+      const rows = Array.from(table.querySelectorAll('tbody tr'));
       return rows.map(row => {
         const columns = Array.from(row.querySelectorAll('td'));
-        return {
-          passo: columns[0]?.innerText,
-          usuario_de_origem: columns[1]?.innerText,
-          usuario_de_destino: columns[2]?.innerText,
-          setor_de_origem: columns[3]?.innerText,
-          setor_de_destino: columns[4]?.innerText,
-          descricao: columns[5]?.innerText,
-          data: columns[6]?.innerText,
-          hora: columns[7]?.innerText,
-          sigiloso: columns[8]?.innerText,
-          verItem: columns[9]?.innerText,
-        };
+        return columns.slice(0, 9).map(column => column.innerText);
       });
     });
-  
-    console.log(tableData);
+    
+    data.movimentacoes = tableData;
+    
+    logToFile('Resultados da tabela salvos.');
+    
+    // Salva os dados da tabela em um arquivo JSON
+    fs.writeFileSync('resultados.json', JSON.stringify(data, null, 2), 'utf8');
+
+    // Fecha o navegador
+    await browser.close();
+    logToFile('Navegador fechado. Script concluído.');
   }
-  
-   
-  
-  
-  // Fecha o navegador
-  //await browser.close();
 })();
+
