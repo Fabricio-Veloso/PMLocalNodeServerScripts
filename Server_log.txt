@@ -1,0 +1,5 @@
+2024-08-22T18:04:29.791Z - 
+Servidor WebSocket rodando em ws://localhost:5247
+2024-08-22T18:04:54.835Z - Cliente conectado
+2024-08-22T18:04:57.795Z - Recebido: ProtocolScrape 200248809
+2024-08-22T18:04:57.797Z - Ação correspondente encontrada: ProtocolScrape
