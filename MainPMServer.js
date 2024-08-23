@@ -12,6 +12,34 @@ const SERVER_LOG_FILE_PATH = "./Logs/Server_log.txt";
 
 /*UTIL FUNCTIONS*/
 
+/**/
+
+/* action function 
+
+is called when an action is needed do be perfomed by the node back-end
+no return, recives the action and it"s parameters(as an aray) that must be performed as a string(for easy code reading )
+*/
+function ServerPerformAction(action, parameters, websocket){
+  switch (action) {
+  
+    case "ProtocolScrape":
+      ProtocolIdetificationNumber = parameters[0];
+      SA_ProtocolScrape(ProtocolIdetificationNumber,websocket);
+      break;
+      
+    case "Sendmessage":
+      const message = parameters[0]; // Obtém a mensagem
+      // Responder ao cliente
+      SA_SendMessage(message, websocket);
+      break;
+  
+    default:
+      logToFile("Ação não recohecida");
+      break;
+  }
+  
+
+}/**/
 /*lexical analisis function
 
 responsable for recive messagens from the blazor webassemly aplication 
@@ -39,39 +67,7 @@ function RequisitionLexicalAnalysis(recivedmessage,ws){
         // Aqui você pode chamar a função correspondente ou executar a lógica desejada
     }
   });
-}
-/*
-*/
-
-/* action function 
-
-is called when an action is needed do be perfomed by the node back-end
-no return, recives the action and it"s parameters(as an aray) that must be performed as a string(for easy code reading )
-*/
-function ServerPerformAction(action, parameters, websocket){
-  switch (action) {
-  
-    case "ProtocolScrape":
-      ProtocolIdetificationNumber = parameters[0];
-      SA_ProtocolScrape(ProtocolIdetificationNumber,websocket);
-      break;
-      
-    case "Sendmessage":
-      const message = parameters[0]; // Obtém a mensagem
-      // Responder ao cliente
-      SA_SendMessage(message, websocket);
-      break;
-  
-    default:
-      logToFile("Ação não recohecida");
-      break;
-  }
-  
-
-}
-/*
-*/
-
+} /**/
 function SA_ProtocolScrape(protocolNumber,websocket){
 
   const { exec } = require("child_process");
@@ -91,11 +87,9 @@ function SA_ProtocolScrape(protocolNumber,websocket){
   
   });
 } 
-
 function SA_SendMessage(messageToSend,websocket) {
   websocket.send(JSON.stringify({ messageToSend: `Você disse: ${messageToSend}` }));
 }
-
 function SA_SendProtocolInfo(websocket){
   fs.readFile(PROTOCOL_INFO_PATH, 'utf8', (err, data) => {
     if (err) {
@@ -107,12 +101,10 @@ function SA_SendProtocolInfo(websocket){
     websocket.send(data);
   });
 }
-
 function logToFile(message) {
   const timestamp = new Date().toISOString(); // Timestamp para log
   fs.appendFileSync(SERVER_LOG_FILE_PATH, `${timestamp} - ${message}\n`, 'utf8'); // Adiciona mensagem ao arquivo de log
 }
-
 function clearFiles() {
   
   // Apaga o arquivo de log se existir

@@ -8,9 +8,8 @@ const SCRAPE_LOG_PATH = "./Logs/scrape_log.txt"
 
 // Função para gravar logs em um arquivo
 function logToFile(message) {
-  const logFilePath = 'scrape_log.txt'; // Nome do arquivo de log
   const timestamp = new Date().toISOString(); // Timestamp para log
-  fs.appendFileSync(logFilePath, `${timestamp} - ${message}\n`, 'utf8'); // Adiciona mensagem ao arquivo de log
+  fs.appendFileSync(SCRAPE_LOG_PATH, `${timestamp} - ${message}\n`, 'utf8'); // Adiciona mensagem ao arquivo de log
 }
 
 async function waitForElement(page, selector, timeout = 5000) {
