@@ -1,8 +1,0 @@
-Seletor encontrado: #username
-Seletor encontrado: #password
-Seletor encontrado: #submit
-Seletor encontrado: #logo_fake
-Seletor encontrado: #NUMERO
-Seletor encontrado: .botao_ver_todos_dados
-Seletor encontrado: .ESPACAMENTO
-Seletor encontrado: #ResultAjax_movimento

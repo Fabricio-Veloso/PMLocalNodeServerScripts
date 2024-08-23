@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "dotenv": "^16.4.5",
+    "fs": "^0.0.1-security",
     "puppeteer": "^23.1.0",
     "ws": "^8.18.0"
   }

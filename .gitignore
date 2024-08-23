@@ -6,7 +6,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 scrape_log.txt*
-
+Server_log.txt*
+Logs/
 # Output of builds
 dist/
 build/
@@ -20,5 +21,6 @@ puppeteer/.local-chromium/
 
 #scrape output
 resultados.json*
+
 
 

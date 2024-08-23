@@ -2,6 +2,9 @@ const puppeteer = require('puppeteer');
 const fs = require('fs'); // Importa o módulo fs para manipulação de arquivos
 require('dotenv').config();
 
+const PROTOCOL_INFO_PATH = "./resultados.json";
+
+const SCRAPE_LOG_PATH = "./Logs/scrape_log.txt"
 
 // Função para gravar logs em um arquivo
 function logToFile(message) {
@@ -22,18 +25,16 @@ async function waitForElement(page, selector, timeout = 5000) {
 }
 
 function clearFiles() {
-  const logFilePath = 'scrape_log.txt';
-  const resultsFilePath = 'resultados.json';
-
+  
   // Apaga o arquivo de log se existir
-  if (fs.existsSync(logFilePath)) {
-    fs.unlinkSync(logFilePath);
+  if (fs.existsSync(SCRAPE_LOG_PATH)) {
+    fs.unlinkSync(SCRAPE_LOG_PATH);
     logToFile('Arquivo de log apagado.');
   }
 
   // Apaga o arquivo de resultados se existir
-  if (fs.existsSync(resultsFilePath)) {
-    fs.unlinkSync(resultsFilePath);
+  if (fs.existsSync(PROTOCOL_INFO_PATH)) {
+    fs.unlinkSync(PROTOCOL_INFO_PATH);
     logToFile('Arquivo de resultados apagado.');
   }
 }

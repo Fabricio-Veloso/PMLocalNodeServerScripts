@@ -1,8 +1,14 @@
+/*LEMBRAR USUÁRIO DE NÃO ESTAR PRESENTE NA PÁGINA DO PROTOCOLO 
+ENQUANDO USA A APLICAÇAO, POIS ISSO GERA COMPORTAMENTOS INESPERADOS
+ NO PROCESSO DE SCRAPPING DE MESMO PROTOCOLO E PÁGINA ABERTA */
 
 const { Protocol } = require('puppeteer');
 
 const fs = require('fs');
 
+const PROTOCOL_INFO_PATH = "resultados.json";
+
+const SERVER_LOG_FILE_PATH = "./Logs/Server_log.txt";
 
 /*UTIL FUNCTIONS*/
 
@@ -11,7 +17,7 @@ const fs = require('fs');
 responsable for recive messagens from the blazor webassemly aplication 
 true the webscoket and parting it in to a action here in th script
 
-no return, Recives the message as a string
+no return, Recives the message as a string and the websocket (to pass it to functions that need it)
 
 is needed to define with actions exist so they can be called
 They mus b defined in the action function
@@ -19,25 +25,20 @@ They mus b defined in the action function
 Every RequisitionLexicalAnalysis call must result in a Server Action
 
 */
-function RequisitionLexicalAnalysis(recivedmessage){
-  
-  ExistentActions = ["ProtocolScrape","ActionSendMessage"]; 
-  
-  toStringRecivedMessage = recivedmessage.toString();
-  
-  tokens = toStringRecivedMessage.split(" ");
-  
+function RequisitionLexicalAnalysis(recivedmessage,ws){
+  const ExistentActions = ["ProtocolScrape","ActionSendMessage"]; 
+  const toStringRecivedMessage = recivedmessage.toString();
+  const tokens = toStringRecivedMessage.split(" ");
   const requestedAction = tokens[0]; // Obtém o primeiro token
   
   ExistentActions.forEach(action => {
     if ( requestedAction === action) { // Compara o primeiro token com cada ação existente
         logToFile(`Ação correspondente encontrada: ${action}`);
         const parameters = tokens.slice(1);
-        ServerPerformAction(action,parameters);
+        ServerPerformAction(action,parameters,ws);
         // Aqui você pode chamar a função correspondente ou executar a lógica desejada
     }
   });
-
 }
 /*
 */
@@ -47,21 +48,19 @@ function RequisitionLexicalAnalysis(recivedmessage){
 is called when an action is needed do be perfomed by the node back-end
 no return, recives the action and it"s parameters(as an aray) that must be performed as a string(for easy code reading )
 */
-function ServerPerformAction(action,parameters){
-  
+function ServerPerformAction(action, parameters, websocket){
   switch (action) {
   
     case "ProtocolScrape":
-      ProtocolNumberIdetification = parameters[0];
-      SA_ProtocolScrape(ProtocolNumberIdetification);
+      ProtocolIdetificationNumber = parameters[0];
+      SA_ProtocolScrape(ProtocolIdetificationNumber,websocket);
       break;
       
-      case "Sendmessage":
-        const websocket = parameters[1]; // Obtém o websocket
-        const message = parameters[0]; // Obtém a mensagem
-        // Responder ao cliente
-        SA_SendMessage(websocket, message);
-        break;
+    case "Sendmessage":
+      const message = parameters[0]; // Obtém a mensagem
+      // Responder ao cliente
+      SA_SendMessage(message, websocket);
+      break;
   
     default:
       logToFile("Ação não recohecida");
@@ -73,7 +72,7 @@ function ServerPerformAction(action,parameters){
 /*
 */
 
-function SA_ProtocolScrape(protocolNumber){
+function SA_ProtocolScrape(protocolNumber,websocket){
 
   const { exec } = require("child_process");
   
@@ -87,25 +86,45 @@ function SA_ProtocolScrape(protocolNumber){
       console.error(`Erro: ${stderr}`);
       return;
     }
-    
-    // Recebe a saída do script de web scraping
-    const scrapingResult = JSON.parse(stdout); // Converte a saída JSON em objeto
-    logToFile("Resultado do Web Scraping:", scrapingResult);
-  });
 
+    SA_SendProtocolInfo(websocket);
+  
+  });
+} 
+
+function SA_SendMessage(messageToSend,websocket) {
+  websocket.send(JSON.stringify({ messageToSend: `Você disse: ${messageToSend}` }));
 }
 
-function SA_SendMessage(ws, messageToSend) {
-  ws.send(JSON.stringify({ messageToSend: `Você disse: ${messageToSend}` }));
+function SA_SendProtocolInfo(websocket){
+  fs.readFile(PROTOCOL_INFO_PATH, 'utf8', (err, data) => {
+    if (err) {
+      console.error("Erro ao ler o arquivo JSON:", err);
+      return;
+    }
+
+    // Envia o conteúdo do arquivo JSON via WebSocket
+    websocket.send(data);
+  });
 }
 
 function logToFile(message) {
-  const logFilePath = 'Server_log.txt'; // Nome do arquivo de log
   const timestamp = new Date().toISOString(); // Timestamp para log
-  fs.appendFileSync(logFilePath, `${timestamp} - ${message}\n`, 'utf8'); // Adiciona mensagem ao arquivo de log
+  fs.appendFileSync(SERVER_LOG_FILE_PATH, `${timestamp} - ${message}\n`, 'utf8'); // Adiciona mensagem ao arquivo de log
+}
+
+function clearFiles() {
+  
+  // Apaga o arquivo de log se existir
+  if (fs.existsSync(SERVER_LOG_FILE_PATH)) {
+    fs.unlinkSync(SERVER_LOG_FILE_PATH);
+    logToFile('Arquivo de log do servidor apagado.');
+  }
+
 }
 /*UTIL FUNCTIONS*/
 
+clearFiles();
 
 const WebSocket = require('ws');
 
@@ -119,21 +138,14 @@ logToFile('\nServidor WebSocket rodando em ws://localhost:' + wss.options.port);
 
 wss.on('connection', (ws) => {
   logToFile('Cliente conectado');
-  
-
-  // Enviar uma mensagem para o cliente
-  ws.send(JSON.stringify({ message: 'Bem-vindo aos servidor WebSocket!' }));
-  
-  
 
   // Escutar mensagens do cliente
   ws.on('message', (message) => {
     logToFile(`Recebido: ${message}`);
   
     //lexical analisis and action execution
-    RequisitionLexicalAnalysis(message);
-    
-    
+    RequisitionLexicalAnalysis(message, ws);
+  
   });
 
   // Quando a conexão é fechada
