@@ -44,7 +44,12 @@ function clearFiles() {
   
   let data = {};
   
-  const Codigo_de_protocolo_teste = 200245870;
+  const Codigo_de_protocolo_teste = process.argv[2];
+  
+  if (!Codigo_de_protocolo_teste) {
+    console.error('Erro: Código de protocolo não fornecido.');
+    process.exit(1);
+}
   
   // Lança o puppeteer em modo headless
   const browser = await puppeteer.launch({ headless: true });
@@ -102,7 +107,7 @@ function clearFiles() {
     });
     logToFile('Dados de cabeçalho recolhidos');
     if (espancamentoData.length > 0) {
-      data.espancamentoData = espancamentoData;
+      data.Header = espancamentoData;
     }
   }
   
@@ -132,7 +137,7 @@ function clearFiles() {
       });
     });
     
-    data.movimentacoes = tableData;
+    data.Moves = tableData;
     
     logToFile('Resultados da tabela salvos.');
     

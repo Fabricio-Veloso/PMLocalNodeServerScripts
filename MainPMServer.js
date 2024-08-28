@@ -23,8 +23,8 @@ function ServerPerformAction(action, parameters, websocket){
   switch (action) {
   
     case "ProtocolScrape":
-      ProtocolIdetificationNumber = parameters[0];
-      SA_ProtocolScrape(ProtocolIdetificationNumber,websocket);
+      ProtocolID = parameters[0];
+      SA_ProtocolScrape(ProtocolID,websocket);
       break;
       
     case "Sendmessage":
