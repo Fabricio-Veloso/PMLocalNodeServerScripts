@@ -1,10 +1,15 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs'); // Importa o módulo fs para manipulação de arquivos
+const { log } = require('util');
 require('dotenv').config();
 
 const PROTOCOL_INFO_PATH = "./resultados.json";
 
 const SCRAPE_LOG_PATH = "./Logs/scrape_log.txt"
+
+// Função para esperar um certo número de milissegundos
+const waitFor = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 
 // Função para gravar logs em um arquivo
 function logToFile(message) {
@@ -44,13 +49,37 @@ function clearFiles() {
   
   let data = {};
   
-  const Codigo_de_protocolo_teste = process.argv[2];
+  setorFiltro = process.argv[2];
   
-  if (!Codigo_de_protocolo_teste) {
-    console.error('Erro: Código de protocolo não fornecido.');
+  if (!setorFiltro) {
+    console.error('Erro: Assunto não recebido');
     process.exit(1);
-}
+  }
   
+  filtroDeAssuntos = "filtro De Assuntos não recebido";
+  
+  const AssuntosFiltroLicitacao = [
+    "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS",
+    "COMUNICAÇÃO - PABS", 
+    "POLÍTICAS INSTITUCIONAIS  - PABS", 
+    "PRESIDÊNCIA  - SOLICITAÇÃO DE BENS E SERVIÇOS - PABS", 
+    "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - Processo de Licitação",
+    "SAC - SECRETARIA DE APOIO AO COLEGIADO - Processo de Aquisição de Bens e Serviços - PABS"
+  ];
+  
+  AssuntosFiltroSetores = [AssuntosFiltroLicitacao]; 
+  
+  switch (setorFiltro) {
+    case "Licitação":
+    filtroDeAssuntos = AssuntosFiltroSetores[0]
+      break;
+  
+    default:
+    logToFile("Nem uma lista de asuntos filtro compatível");
+      break;
+  }
+  
+
   // Lança o puppeteer em modo headless
   const browser = await puppeteer.launch({ headless: false });
   
@@ -77,14 +106,82 @@ function clearFiles() {
   }
   
   if (await waitForElement(page, '#logo_fake', 10000)) {
-    await page.goto('https://crea-pe.sitac.com.br/app/view/sight/main?form=PesquisarProtocolo');
-    logToFile('Navegando para a página de pesquisa de protocolo.');
+    await page.goto('https://crea-pe.sitac.com.br/app/view/sight/main?form=PesquisarProtocoloFiltro');
+    logToFile('Navegando para a página de pesquisa de protocolo com filtro.');
+  }
+  await waitFor(500);
+  
+  if(await waitForElement(page,'#EVTASSUNTO',5000)){
+    await page.click('#EVTASSUNTO');
+    logToFile(`Check box de assunto clicada`);
   }
   
-  if(await waitForElement(page,'#NUMERO',5000)){
-    await page.type('#NUMERO', Codigo_de_protocolo_teste.toString());
-    logToFile(`Número de protocolo ${Codigo_de_protocolo_teste} inserido.`);
+  if (await waitForElement(page, '#ASSUNTO_chosen', 1000)) {
+    // Abre o dropdown
+    await page.click('#ASSUNTO_chosen');
+    
+    for (const opcao of filtroDeAssuntos) {
+      logToFile('escrevendo '+opcao);
+      await page.type('.search-field input[type="text"]', opcao);
+      waitFor(1000);
+      await page.keyboard.press('Enter');
+      
+    }
+    
+}
+
+  if(await waitForElement(page,'#EVTSTATUS',5000)){
+    await page.click('#EVTSTATUS');
+    logToFile(`Check box de status clicada`);
+    await page.click('#STATUS_chosen');
+    logToFile('escrevendo Ativo');
+    await page.type('.search-field input[type="text"]', 'aberto');
+    await page.keyboard.press('Enter');
   }
+  
+  if(await waitForElement(page,'.botao_informacao',500)){
+    await page.click('.botao_informacao');
+  }
+
+  if(await waitForElement(page,'.dataTables_wrapper',10000)){
+  
+    const divElement = await page.$('.dataTables_wrapper')
+    const selectElement = await divElement.$('select');
+    // Seleciona o valor -1 para mostrar todas as movimentações
+    if (selectElement) {
+      await page.evaluate(select => {
+          select.value = '-1'; // Define o valor do select para "Todos"
+          select.dispatchEvent(new Event('change')); // Dispara o evento change para aplicar a seleção
+      }, selectElement);
+    } else {
+      logToFile('Elemento select não encontrado dentro da div.');
+    }
+  }
+  
+  // Avalia a tabela de movimentações
+  const tableData = await page.evaluate(() => {
+    const table = document.querySelector('.dataTables_wrapper');
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    return rows.map(row => {
+      const columns = Array.from(row.querySelectorAll('td'));
+      return columns.slice(0, 9).map(column => column.innerText);
+    });
+  });
+  
+  data.filteredProtocols = tableData;
+  
+  
+  
+  // Salva os dados da tabela em um arquivo JSON
+  fs.writeFileSync('resultados.json', JSON.stringify(data, null, 2), 'utf8');
+  logToFile('Resultados da tabela salvos.');
+
+  // Fecha o navegador
+  //await browser.close();
+  //logToFile('Navegador fechado. Script concluído.');
+
+  
+  /*
   
   if(await waitForElement(page,'.botao_ver_todos_dados',5000)){
     await page.click('.botao_ver_todos_dados');
@@ -110,6 +207,9 @@ function clearFiles() {
       data.Header = espancamentoData;
     }
   }
+  200245998
+  200248809
+  200247190
   
   // Aguarda o carregamento do menu de movimentação
   if(await waitForElement(page,'#ResultAjax_movimento',60000)){
@@ -145,8 +245,9 @@ function clearFiles() {
     fs.writeFileSync('resultados.json', JSON.stringify(data, null, 2), 'utf8');
 
     // Fecha o navegador
-    //await browser.close();
+    await browser.close();
     logToFile('Navegador fechado. Script concluído.');
   }
+  */
 })();
 
