@@ -164,11 +164,11 @@ function clearFiles() {
     const rows = Array.from(table.querySelectorAll('tbody tr'));
     return rows.map(row => {
       const columns = Array.from(row.querySelectorAll('td'));
-      return columns.slice(0, 9).map(column => column.innerText);
+      return columns.slice(0, 12).map(column => column.innerText);
     });
   });
   
-  data.filteredProtocols = tableData;
+  data.MiniProtocols = tableData;
   
   
   

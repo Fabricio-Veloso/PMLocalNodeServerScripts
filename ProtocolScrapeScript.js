@@ -52,7 +52,7 @@ function clearFiles() {
 }
   
   // Lança o puppeteer em modo headless
-  const browser = await puppeteer.launch({ headless: false });
+  const browser = await puppeteer.launch({ headless: true });
   
   // Abre uma nova página
   const page = await browser.newPage();
@@ -145,7 +145,7 @@ function clearFiles() {
     fs.writeFileSync('resultados.json', JSON.stringify(data, null, 2), 'utf8');
 
     // Fecha o navegador
-    //await browser.close();
+    await browser.close();
     logToFile('Navegador fechado. Script concluído.');
   }
 })();
