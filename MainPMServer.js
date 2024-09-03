@@ -22,9 +22,14 @@ no return, recives the action and it"s parameters(as an aray) that must be perfo
 function ServerPerformAction(action, parameters, websocket){
   switch (action) {
   
+    case"BySectorMiniProtocolsScrape":
+      sector = parameters[0];
+      SA_BySectorMiniProtocolScrape(sector,websocket);
+      break;
+  
     case "ProtocolScrape":
-      ProtocolID = parameters[0];
-      SA_ProtocolScrape(ProtocolID,websocket);
+      protocolID = parameters[0];
+      SA_ProtocolScrape(protocolID,websocket);
       break;
       
     case "Sendmessage":
@@ -68,25 +73,42 @@ function RequisitionLexicalAnalysis(recivedmessage,ws){
     }
   });
 } /**/
+function SA_BySectorMiniProtocolScrape(Sector,websocket){
+
+  const { exec } = require("child_process");
+    // Executa o script de web scraping
+    const child = exec(`node BBySubjectPSS.js ${Sector}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Erro: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        console.error(`Erro: ${stderr}`);
+        return;
+      }
+    
+      SA_SendProtocolInfo(websocket);
+    
+    });
+}
 function SA_ProtocolScrape(protocolNumber,websocket){
 
   const { exec } = require("child_process");
-  
-  // Executa o script de web scraping
-  const child = exec(`node ProtocolScrapeScript.js ${protocolNumber}`, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Erro: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.error(`Erro: ${stderr}`);
-      return;
-    }
-
-    SA_SendProtocolInfo(websocket);
-  
-  });
-} 
+    // Executa o script de web scraping
+    const child = exec(`node ProtocolScrapeScript.js ${protocolNumber}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Erro: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        console.error(`Erro: ${stderr}`);
+        return;
+      }
+    
+      SA_SendProtocolInfo(websocket);
+    
+    });
+}  
 function SA_SendMessage(messageToSend,websocket) {
   websocket.send(JSON.stringify({ messageToSend: `Você disse: ${messageToSend}` }));
 }
@@ -96,7 +118,6 @@ function SA_SendProtocolInfo(websocket){
       console.error("Erro ao ler o arquivo JSON:", err);
       return;
     }
-
     // Envia o conteúdo do arquivo JSON via WebSocket
     websocket.send(data);
   });

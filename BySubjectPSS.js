@@ -81,7 +81,7 @@ function clearFiles() {
   
 
   // Lança o puppeteer em modo headless
-  const browser = await puppeteer.launch({ headless: false });
+  const browser = await puppeteer.launch({ headless: true });
   
   // Abre uma nova página
   const page = await browser.newPage();
