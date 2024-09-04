@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const PROTOCOL_INFO_PATH = "./resultados.json";
 
-const SCRAPE_LOG_PATH = "./Logs/scrape_log.txt"
+const SCRAPE_LOG_PATH = "./Logs/subscrape_log.txt"
 
 // Função para esperar um certo número de milissegundos
 const waitFor = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -70,7 +70,7 @@ function clearFiles() {
   AssuntosFiltroSetores = [AssuntosFiltroLicitacao]; 
   
   switch (setorFiltro) {
-    case "Licitação":
+    case "Licitações":
     filtroDeAssuntos = AssuntosFiltroSetores[0]
       break;
   
@@ -177,8 +177,8 @@ function clearFiles() {
   logToFile('Resultados da tabela salvos.');
 
   // Fecha o navegador
-  //await browser.close();
-  //logToFile('Navegador fechado. Script concluído.');
+  await browser.close();
+  logToFile('Navegador fechado. Script concluído.');
 
   
   /*

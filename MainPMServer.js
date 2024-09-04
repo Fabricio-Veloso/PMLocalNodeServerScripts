@@ -59,7 +59,7 @@ Every RequisitionLexicalAnalysis call must result in a Server Action
 
 */
 function RequisitionLexicalAnalysis(recivedmessage,ws){
-  const ExistentActions = ["ProtocolScrape","ActionSendMessage"]; 
+  const ExistentActions = ["ProtocolScrape","ActionSendMessage","BySectorMiniProtocolsScrape"]; 
   const toStringRecivedMessage = recivedmessage.toString();
   const tokens = toStringRecivedMessage.split(" ");
   const requestedAction = tokens[0]; // Obtém o primeiro token
@@ -77,7 +77,7 @@ function SA_BySectorMiniProtocolScrape(Sector,websocket){
 
   const { exec } = require("child_process");
     // Executa o script de web scraping
-    const child = exec(`node BBySubjectPSS.js ${Sector}`, (error, stdout, stderr) => {
+    const child = exec(`node BySubjectPSS.js ${Sector}`, (error, stdout, stderr) => {
       if (error) {
         console.error(`Erro: ${error.message}`);
         return;
@@ -116,11 +116,16 @@ function SA_SendProtocolInfo(websocket){
   fs.readFile(PROTOCOL_INFO_PATH, 'utf8', (err, data) => {
     if (err) {
       console.error("Erro ao ler o arquivo JSON:", err);
+      logToFile(err);
       return;
     }
+    logToFile("Não houve erro no processo de leitura");
+  
     // Envia o conteúdo do arquivo JSON via WebSocket
+    
     websocket.send(data);
   });
+  
 }
 function logToFile(message) {
   const timestamp = new Date().toISOString(); // Timestamp para log
@@ -160,6 +165,8 @@ wss.on('connection', (ws) => {
     RequisitionLexicalAnalysis(message, ws);
   
   });
+  
+  
 
   // Quando a conexão é fechada
   ws.on('close', () => {
