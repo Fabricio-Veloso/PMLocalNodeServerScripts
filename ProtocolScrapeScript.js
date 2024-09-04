@@ -40,6 +40,8 @@ function clearFiles() {
 
 (async () => {
 
+  
+
   clearFiles();
   
   let data = {};
@@ -49,7 +51,7 @@ function clearFiles() {
   if (!Codigo_de_protocolo_teste) {
     console.error('Erro: Código de protocolo não fornecido.');
     process.exit(1);
-}
+  }
   
   // Lança o puppeteer em modo headless
   const browser = await puppeteer.launch({ headless: true });
@@ -92,24 +94,40 @@ function clearFiles() {
   }
   
   if (await waitForElement(page, '.ESPACAMENTO', 5000)) {
-    logToFile('Div de cabeçalho encontrada');
     const espancamentoData = await page.evaluate(() => {
-      const elements = Array.from(document.querySelectorAll('.ESPACAMENTO'));
-      
-      return elements.map(element => {
-        const roleElement = element.querySelector('.listar_label_valor label');
-        const infoElement = element.querySelector('.cad_form_cont_campo .listar_label_result');
-  
-        if (roleElement?.innerText.trim() && infoElement?.innerText.trim()) {
-          return `${roleElement.innerText.trim()}: ${infoElement.innerText.trim()}`;
-        }
-      }).filter(item => item); // Remove elementos nulos ou indefinidos
+        const elements = Array.from(document.querySelectorAll('.ESPACAMENTO'));
+
+        return elements.map(element => {
+            const roleElement = element.querySelector('.listar_label_valor label');
+            const infoElement = element.querySelector('.cad_form_cont_campobox .listar_label_result') || 
+                               element.querySelector('.cad_form_cont_campo .listar_label_result'); // Busca em ambas as classes
+            
+            // Verifica se roleElement e infoElement existem
+            if (roleElement && infoElement) {
+                const roleText = roleElement.innerText.trim();
+                const infoText = infoElement.innerText.trim();
+
+                // Verifica se o roleElement é "Descrição: "
+                if (roleText === "Descrição: ") {
+                    return infoText.length > 2 ? infoText : "Sem Descrição";
+                } 
+                
+                // Verifica se roleElement e infoText não estão vazios
+                if (roleText && infoText) {
+                    return `${roleText}: ${infoText}`;
+                }
+            }
+        }).filter(item => item);
     });
-    logToFile('Dados de cabeçalho recolhidos');
+
+    // Armazena os dados do cabeçalho na variável data
     if (espancamentoData.length > 0) {
-      data.Header = espancamentoData;
+        data.Header = espancamentoData;
     }
-  }
+}
+
+ 
+  
   
   // Aguarda o carregamento do menu de movimentação
   if(await waitForElement(page,'#ResultAjax_movimento',60000)){
