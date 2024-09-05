@@ -139,6 +139,31 @@ function clearFiles() {
     await page.keyboard.press('Enter');
   }
   
+  //
+  
+  if( await waitForElement(page,'#Evt_DataCadastro',5000)){
+    await page.click('#EVTDATACADASTRO');
+    const parentSelector = '#Evt_DataCadastro';
+    // Preenche o campo "DATA_INICIO" dentro do contêiner pai
+    const dataInicioSelector = `${parentSelector} #DATA_INICIO`;
+    await page.waitForSelector(dataInicioSelector);
+    //await page.click(dataInicioSelector, { clickCount: 3 }); // Seleciona o campo inteiro
+    await page.type(dataInicioSelector, '01/01/2023'); // Substitua pela data desejada
+
+    // Preenche o campo "DATA_FIM" dentro do contêiner pai
+    const dataFimSelector = `${parentSelector} #DATA_FIM`;
+    await page.waitForSelector(dataFimSelector);
+    //await page.click(dataFimSelector, { clickCount: 3 }); // Seleciona o campo inteiro
+    await page.type(dataFimSelector, '31/12/2024'); 
+    
+  }
+  
+
+  
+  
+  
+  //
+  
   if(await waitForElement(page,'.botao_informacao',500)){
     await page.click('.botao_informacao');
   }
@@ -179,7 +204,7 @@ function clearFiles() {
   // Fecha o navegador
   await browser.close();
   logToFile('Navegador fechado. Script concluído.');
-
+  
   
   /*
   
@@ -249,5 +274,7 @@ function clearFiles() {
     logToFile('Navegador fechado. Script concluído.');
   }
   */
+ 
 })();
+
 
