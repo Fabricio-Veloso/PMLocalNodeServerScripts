@@ -59,11 +59,15 @@ function clearFiles() {
   filtroDeAssuntos = "filtro De Assuntos não recebido";
   
   const AssuntosFiltroLicitacao = [
-    "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS",
-    "COMUNICAÇÃO - PABS", 
-    "POLÍTICAS INSTITUCIONAIS  - PABS", 
-    "PRESIDÊNCIA  - SOLICITAÇÃO DE BENS E SERVIÇOS - PABS", 
-    "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - Processo de Licitação",
+    "COMUNICAÇÃO - PABS",
+    "POLÍTICAS INSTITUCIONAIS  - PABS",
+    "PRESIDÊNCIA  - SOLICITAÇÃO DE BENS E SERVIÇOS - PABS",
+    "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 01 - SOLICITAÇÃO DE CONTRATAÇÃO",
+    "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 02 - PLANEJAMENTO DE CONTRATAÇÃO",
+    "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 03 - CONTRATAÇÃO DIRETA",
+    "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 04 - LICITAÇÃO",
+    "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 05 - EXECUÇÃO",
+    "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 06 - ADITIVO DE CONTRATO",
     "SAC - SECRETARIA DE APOIO AO COLEGIADO - Processo de Aquisição de Bens e Serviços - PABS"
   ];
   
@@ -123,8 +127,9 @@ function clearFiles() {
     for (const opcao of filtroDeAssuntos) {
       logToFile('escrevendo '+opcao);
       await page.type('.search-field input[type="text"]', opcao);
-      waitFor(1000);
       await page.keyboard.press('Enter');
+      await waitFor(300);
+      
       
     }
     
