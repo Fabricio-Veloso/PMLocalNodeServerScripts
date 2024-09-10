@@ -37,7 +37,11 @@ function ServerPerformAction(action, parameters, websocket){
       // Responder ao cliente
       SA_SendMessage(message, websocket);
       break;
-  
+    
+    case "UpdateGridWithFullProtocols":
+      const protocolsToUpdateList = parameters[0];
+      Sa_UpdateGridWithFullProtocols(protocolsToUpdateList, websocket);
+      break;
     default:
       logToFile("Ação não recohecida");
       break;
@@ -59,7 +63,7 @@ Every RequisitionLexicalAnalysis call must result in a Server Action
 
 */
 function RequisitionLexicalAnalysis(recivedmessage,ws){
-  const ExistentActions = ["ProtocolScrape","ActionSendMessage","BySectorMiniProtocolsScrape"]; 
+  const ExistentActions = ["ProtocolScrape","ActionSendMessage","BySectorMiniProtocolsScrape","UpdateGridWithFullProtocols"]; 
   const toStringRecivedMessage = recivedmessage.toString();
   const tokens = toStringRecivedMessage.split(" ");
   const requestedAction = tokens[0]; // Obtém o primeiro token
@@ -73,6 +77,24 @@ function RequisitionLexicalAnalysis(recivedmessage,ws){
     }
   });
 } /**/
+
+function SA_UpdateGridWithFullProtocols(protocolsToUpdateList,websocket){
+  const { exec } = require("child_process");
+    // Executa o script de web scraping
+    const child = exec(`node UpdateGridWithFullProtocols ${protocolsToUpdateList}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Erro: ${error.message}`);
+        return;
+      }
+      if (stderr) {
+        console.error(`Erro: ${stderr}`);
+        return;
+      }
+    
+      SA_SendProtocolInfo(websocket);
+    
+    });
+}
 function SA_BySectorMiniProtocolScrape(Sector,websocket){
 
   const { exec } = require("child_process");
