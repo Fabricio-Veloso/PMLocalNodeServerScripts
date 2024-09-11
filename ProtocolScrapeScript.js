@@ -84,8 +84,17 @@ function clearFiles() {
   }
   
   if(await waitForElement(page,'#NUMERO',5000)){
-    await page.type('#NUMERO', Codigo_de_protocolo_teste.toString());
-    logToFile(`Número de protocolo ${Codigo_de_protocolo_teste} inserido.`);
+    const [numero, ano] = Codigo_de_protocolo_teste.split('/');
+      
+      if(await waitForElement(page,'#NUMERO',5000)){
+        await page.type('#NUMERO', numero);
+        logToFile(`Número de protocolo ${numero} inserido.`);
+      }
+      
+      if (await waitForElement(page, '#ANO', 5000)) {
+        await page.type('#ANO', ano); // Insira o ano do protocolo
+        logToFile(`Ano do protocolo ${ano} inserido.`);
+      } 
   }
   
   if(await waitForElement(page,'.botao_ver_todos_dados',5000)){
