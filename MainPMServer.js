@@ -46,6 +46,13 @@ function ServerPerformAction(action, parameters, websocket){
       const protocolsToUpdateList = parameters[0];
       SA_UpdateGridWithFullProtocols(protocolsToUpdateList, websocket);
       break;
+      
+    case "CheckForProtocolUpdate":
+      const codigosProtocolosPesquisar = parameters[0];
+      const horasUltimoMovimento = parameters[1];
+      SA_CheckForProtocolUpdate(codigosProtocolosPesquisar,horasUltimoMovimento,websocket);
+      break;
+      
     default:
       logToFile("Ação não recohecida");
       break;
@@ -67,7 +74,7 @@ Every RequisitionLexicalAnalysis call must result in a Server Action
 
 */
 function RequisitionLexicalAnalysis(recivedmessage,ws){
-  const ExistentActions = ["ProtocolScrape","ActionSendMessage","BySectorMiniProtocolsScrape","UpdateGridWithFullProtocols"]; 
+  const ExistentActions = ["ProtocolScrape","ActionSendMessage","BySectorMiniProtocolsScrape","UpdateGridWithFullProtocols","CheckForProtocolUpdate"]; 
   const toStringRecivedMessage = recivedmessage.toString();
   const tokens = toStringRecivedMessage.split(" ");
   const requestedAction = tokens[0]; // Obtém o primeiro token
@@ -299,6 +306,118 @@ async function SA_UpdateGridWithFullProtocols(codigos_de_protocolos_Para_Pesquis
     
   
 
+}
+async function SA_CheckForProtocolUpdate(codigos_de_protocolos_Para_Pesquisar,horasUltimoMovimento, websocket) {
+  
+  // Lança o puppeteer em modo headless
+  const browser = await puppeteer.launch({ headless: false });
+  
+  // Abre uma nova página
+  const page = await browser.newPage();
+  
+  // Navega até a URL especificada
+  await page.goto('https://crea-pe.sitac.com.br/app/view/pages/login/login.php#!');
+  
+  // Procura o elemento de login e senha, caso ele seja encontrado, o campo de login é preenchido.
+  if (await waitForElement(page, '#username', 5000)) {
+    await page.type('#username', process.env.SITAC_LOGIN);
+    logToFile('Campo de login preenchido.');
+  }
+  
+  if (await waitForElement(page, '#password', 5000)) {
+    await page.type('#password', process.env.SITAC_PASSWORD);
+    logToFile('Campo de senha preenchido.');
+  }
+  
+  if (await waitForElement(page, '#submit', 5000)) {
+    await page.click('#submit');
+    logToFile('Botão de login clicado.');
+  }
+  
+  if (await waitForElement(page, '#logo_fake', 20000)) {
+    await page.goto('https://crea-pe.sitac.com.br/app/view/sight/main?form=PesquisarProtocoloFiltro');
+    logToFile('Navegando para a página de pesquisa de protocolo com filtro.');
+  }
+  
+  await waitFor(500);
+  
+  if(await waitForElement(page,'#EVTPROTOCOLOS',5000)){
+    await page.click('#EVTPROTOCOLOS');
+    logToFile(`Check box de busca por protocols clicada`);
+  }
+  
+  if (await waitForElement(page, '#PROTOCOLOS, 1000)') ){
+    // Abre o dropdown
+    await page.click('#PROTOCOLOS');
+    
+    for (const protocolo of codigos_de_protocolos_Para_Pesquisar) {
+      logToFile('escrevendo '+ protocolo);
+      await page.type('.search-field input[type="text"]', protocolo);
+      await page.keyboard.press('Enter');
+      await waitFor(300);
+      
+      
+    }
+    
+  }
+  
+  if(await waitForElement(page,'.botao_informacao',500)){
+    await page.click('.botao_informacao');
+  }
+  
+  if(await waitForElement(page,'.dataTables_wrapper',10000)){
+  
+    const divElement = await page.$('.dataTables_wrapper')
+    const selectElement = await divElement.$('select');
+    // Seleciona o valor -1 para mostrar todas as movimentações
+    if (selectElement) {
+      await page.evaluate(select => {
+          select.value = '-1'; // Define o valor do select para "Todos"
+          select.dispatchEvent(new Event('change')); // Dispara o evento change para aplicar a seleção
+      }, selectElement);
+    } else {
+      logToFile('Elemento select não encontrado dentro da div.');
+    }
+  }
+  
+  if (await waitForElement(page, '.dataTables_wrapper', 10000)) {
+    const tableData = await page.evaluate(() => {
+      const table = document.querySelector('.dataTables_wrapper');
+      const rows = Array.from(table.querySelectorAll('tbody tr'));
+      return rows.map(row => {
+        const columns = Array.from(row.querySelectorAll('td'));
+        // Suponha que a primeira coluna seja o número do protocolo e a segunda coluna a hora
+        return {
+          protocolo: columns[0].innerText, // Ajuste o índice conforme necessário
+          hora: columns[11].innerText        // Ajuste o índice conforme necessário
+        };
+      });
+    });
+    
+    // Variável para armazenar protocolos que precisam ser atualizados
+    const protocolosParaAtualizar = [];
+
+    // Compara as horas na lista com as horas da tabela
+    for (const protocoloData of tableData) {
+      const protocolo = protocoloData.protocolo;
+      const horaTabela = protocoloData.hora;
+
+      // Encontra o índice do protocolo na lista de codigos_de_protocolos_Para_Pesquisar
+      const index = codigos_de_protocolos_Para_Pesquisar.indexOf(protocolo);
+      if (index !== -1) {
+        const horaUltimoMovimento = horasUltimoMovimento[index];
+
+        // Compara as horas
+        if (horaUltimoMovimento !== horaTabela) {
+          protocolosParaAtualizar.push(protocolo);
+        }
+      }
+    }
+    logToFile('Protocolos que precisam ser atualizados:', protocolosParaAtualizar);
+    websocket.send(protocolosParaAtualizar.count); 
+    
+    SA_UpdateGridWithFullProtocols(protocolosParaAtualizar);
+  }
 }
 /*UTIL FUNCTIONS*/
 

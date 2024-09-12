@@ -59,7 +59,10 @@ function clearFiles() {
   filtroDeAssuntos = "filtro De Assuntos não recebido";
   
   const AssuntosFiltroLicitacao = [
-    "COMUNICAÇÃO - PABS",
+    "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 04 - LICITAÇÃO"
+  ];
+  /*
+  "COMUNICAÇÃO - PABS",
     "POLÍTICAS INSTITUCIONAIS  - PABS",
     "PRESIDÊNCIA  - SOLICITAÇÃO DE BENS E SERVIÇOS - PABS",
     "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 01 - SOLICITAÇÃO DE CONTRATAÇÃO",
@@ -69,8 +72,7 @@ function clearFiles() {
     "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 05 - EXECUÇÃO",
     "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 06 - ADITIVO DE CONTRATO",
     "SAC - SECRETARIA DE APOIO AO COLEGIADO - Processo de Aquisição de Bens e Serviços - PABS"
-  ];
-  
+  */
   AssuntosFiltroSetores = [AssuntosFiltroLicitacao]; 
   
   switch (setorFiltro) {
@@ -109,7 +111,7 @@ function clearFiles() {
     logToFile('Botão de login clicado.');
   }
   
-  if (await waitForElement(page, '#logo_fake', 10000)) {
+  if (await waitForElement(page, '#logo_fake', 20000)) {
     await page.goto('https://crea-pe.sitac.com.br/app/view/sight/main?form=PesquisarProtocoloFiltro');
     logToFile('Navegando para a página de pesquisa de protocolo com filtro.');
   }
@@ -133,7 +135,7 @@ function clearFiles() {
       
     }
     
-}
+  }
 
   if(await waitForElement(page,'#EVTSTATUS',5000)){
     await page.click('#EVTSTATUS');
