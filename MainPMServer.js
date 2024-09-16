@@ -346,10 +346,10 @@ async function SA_CheckForProtocolUpdate(codigos_de_protocolos_Para_Pesquisar,ho
     logToFile(`Check box de busca por protocols clicada`);
   }
   
-  if (await waitForElement(page, '#PROTOCOLOS, 1000)') ){
+  if (await waitForElement(page, '#PROTOCOLOS', 1000)) {
     // Abre o dropdown
     await page.click('#PROTOCOLOS');
-    
+    logToFile(codigos_de_protocolos_Para_Pesquisar);
     for (const protocolo of codigos_de_protocolos_Para_Pesquisar) {
       logToFile('escrevendo '+ protocolo);
       await page.type('.search-field input[type="text"]', protocolo);
@@ -413,10 +413,17 @@ async function SA_CheckForProtocolUpdate(codigos_de_protocolos_Para_Pesquisar,ho
         }
       }
     }
-    logToFile('Protocolos que precisam ser atualizados:', protocolosParaAtualizar);
+    
     websocket.send(protocolosParaAtualizar.count); 
     
-    SA_UpdateGridWithFullProtocols(protocolosParaAtualizar);
+    if (protocolosParaAtualizar > 0){
+      SA_UpdateGridWithFullProtocols(protocolosParaAtualizar);
+      logToFile('Protocolos que precisam ser atualizados:', protocolosParaAtualizar);
+      
+    }else if (protocolosParaAtualizar < 0){
+      logToFile('Não há protocolos para serem atualizados');
+    }
+    
   }
 }
 /*UTIL FUNCTIONS*/
@@ -436,6 +443,8 @@ async function waitForElement(page, selector, timeout = 5000) {
     return false; // Retorna falso se o seletor não for encontrado
   }
 }
+
+const waitFor = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 /* UTIL FUNCTIONS FOR THE FULLSCRAPE PROCESS*/
 
 clearFiles();
