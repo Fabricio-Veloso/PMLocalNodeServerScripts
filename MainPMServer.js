@@ -28,11 +28,13 @@ function ServerPerformAction(action, parameters, websocket){
   
     case"BySectorMiniProtocolsScrape":
       sector = parameters[0];
+     
       SA_BySectorMiniProtocolScrape(sector,websocket);
       break;
   
     case "ProtocolScrape":
       protocolID = parameters[0];
+      
       SA_ProtocolScrape(protocolID,websocket);
       break;
       
@@ -44,12 +46,14 @@ function ServerPerformAction(action, parameters, websocket){
     
     case "UpdateGridWithFullProtocols":
       const protocolsToUpdateList = parameters[0];
+      
       SA_UpdateGridWithFullProtocols(protocolsToUpdateList, websocket);
       break;
       
     case "CheckForProtocolUpdate":
       const codigosProtocolosPesquisar = parameters[0];
       const horasUltimoMovimento = parameters[1];
+      
       SA_CheckForProtocolUpdate(codigosProtocolosPesquisar,horasUltimoMovimento,websocket);
       break;
       
@@ -310,7 +314,7 @@ async function SA_UpdateGridWithFullProtocols(codigos_de_protocolos_Para_Pesquis
 async function SA_CheckForProtocolUpdate(codigos_de_protocolos_Para_Pesquisar,horasUltimoMovimento, websocket) {
   
   // Lança o puppeteer em modo headless
-  const browser = await puppeteer.launch({ headless: false });
+  const browser = await puppeteer.launch({ headless: true });
   
   // Abre uma nova página
   const page = await browser.newPage();
@@ -350,13 +354,12 @@ async function SA_CheckForProtocolUpdate(codigos_de_protocolos_Para_Pesquisar,ho
     // Abre o dropdown
     await page.click('#PROTOCOLOS');
     logToFile(codigos_de_protocolos_Para_Pesquisar);
-    for (const protocolo of codigos_de_protocolos_Para_Pesquisar) {
+    
+    for (const protocolo of codigos_de_protocolos_Para_Pesquisar.split(',')) {
       logToFile('escrevendo '+ protocolo);
       await page.type('.search-field input[type="text"]', protocolo);
       await page.keyboard.press('Enter');
       await waitFor(300);
-      
-      
     }
     
   }
@@ -394,37 +397,50 @@ async function SA_CheckForProtocolUpdate(codigos_de_protocolos_Para_Pesquisar,ho
       });
     });
     
+    logToFile(JSON.stringify(tableData));
+
+    // Aqui começa a lógica corrigida para comparar os horários
+    // Converter os códigos e horas em arrays
+    const codigosArray = codigos_de_protocolos_Para_Pesquisar.split(',');
+    const horasArray = horasUltimoMovimento.split(',');
+
     // Variável para armazenar protocolos que precisam ser atualizados
     const protocolosParaAtualizar = [];
 
-    // Compara as horas na lista com as horas da tabela
-    for (const protocoloData of tableData) {
-      const protocolo = protocoloData.protocolo;
-      const horaTabela = protocoloData.hora;
+    // Itera sobre os protocolos e horas simultaneamente
+    for (let i = 0; i < codigosArray.length; i++) {
+        const protocolo = codigosArray[i];
+        const horaUltimoMovimento = horasArray[i];
 
-      // Encontra o índice do protocolo na lista de codigos_de_protocolos_Para_Pesquisar
-      const index = codigos_de_protocolos_Para_Pesquisar.indexOf(protocolo);
-      if (index !== -1) {
-        const horaUltimoMovimento = horasUltimoMovimento[index];
+        // Encontrar o protocolo correspondente na tabela extraída
+        const protocoloData = tableData.find(data => data.protocolo === protocolo);
 
-        // Compara as horas
-        if (horaUltimoMovimento !== horaTabela) {
-          protocolosParaAtualizar.push(protocolo);
+        if (protocoloData) {
+            const horaTabela = protocoloData.hora;
+
+            // Comparar as horas
+            if (horaUltimoMovimento !== horaTabela) {
+                protocolosParaAtualizar.push(protocolo);
+            }
+        } else {
+            logToFile(`Protocolo ${protocolo} não encontrado na tabela extraída.`);
         }
-      }
     }
-    
-    websocket.send(protocolosParaAtualizar.count); 
-    
-    if (protocolosParaAtualizar > 0){
-      SA_UpdateGridWithFullProtocols(protocolosParaAtualizar);
-      logToFile('Protocolos que precisam ser atualizados:', protocolosParaAtualizar);
-      
-    }else if (protocolosParaAtualizar < 0){
-      logToFile('Não há protocolos para serem atualizados');
+
+    logToFile("Comparação de horários feita, há " + protocolosParaAtualizar.length + " para atualizar");
+    websocket.send(protocolosParaAtualizar.length);
+
+    if (protocolosParaAtualizar.length > 0) {
+        logToFile('Protocolos que precisam ser atualizados:', protocolosParaAtualizar);
+        SA_UpdateGridWithFullProtocols(protocolosParaAtualizar);
+    } else {
+        logToFile('Não há protocolos para serem atualizados');
     }
     
   }
+  
+  await browser.close();
+  logToFile('Navegador fechado. Script concluído.');
 }
 /*UTIL FUNCTIONS*/
 
@@ -450,6 +466,7 @@ const waitFor = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 clearFiles();
 
 const WebSocket = require('ws');
+const { log } = require('console');
 
 require('dotenv').config();
 
@@ -464,7 +481,7 @@ wss.on('connection', (ws) => {
 
   // Escutar mensagens do cliente
   ws.on('message', (message) => {
-    logToFile(`Recebido: ${message}`);
+    logToFile(`\nRecebido: ${message}`);
   
     //lexical analisis and action execution
     RequisitionLexicalAnalysis(message, ws);
