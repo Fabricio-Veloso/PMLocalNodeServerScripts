@@ -432,7 +432,7 @@ async function SA_CheckForProtocolUpdate(codigos_de_protocolos_Para_Pesquisar,ho
 
     if (protocolosParaAtualizar.length > 0) {
         logToFile('Protocolos que precisam ser atualizados:', protocolosParaAtualizar);
-        SA_UpdateGridWithFullProtocols(protocolosParaAtualizar);
+        SA_UpdateGridWithFullProtocols(protocolosParaAtualizar.join(","));
     } else {
         logToFile('Não há protocolos para serem atualizados');
     }
