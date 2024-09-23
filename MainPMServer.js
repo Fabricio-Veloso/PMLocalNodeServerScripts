@@ -178,6 +178,8 @@ async function SA_UpdateGridWithFullProtocols(codigos_de_protocolos_Para_Pesquis
   
   let protocolosArray = [];
   
+  logToFile(JSON.stringify(codigos_de_protocolos_Para_Pesquisar));
+  
   if (!codigos_de_protocolos_Para_Pesquisar) {
     console.error('Erro: Código de protocolo não fornecido.');
     process.exit(1);
@@ -210,7 +212,7 @@ async function SA_UpdateGridWithFullProtocols(codigos_de_protocolos_Para_Pesquis
     logToFile('Botão de login clicado.');
   }
   
-  if (await waitForElement(page, '#logo_fake', 10000)) {
+  if (await waitForElement(page, '#logo_fake', 20000)) {
     await page.goto('https://crea-pe.sitac.com.br/app/view/sight/main?form=PesquisarProtocolo');
     logToFile('Navegando para a página de pesquisa de protocolo.');
   }
@@ -298,9 +300,14 @@ async function SA_UpdateGridWithFullProtocols(codigos_de_protocolos_Para_Pesquis
       
       data.Moves = tableData;
       
-      logToFile('Resultados da tabela salvos.');
+      logToFile('Resultados da tabela salvos. \n' + JSON.stringify(data));
       
-      websocket.send(JSON.stringify(data));
+      const dadosParaEnviar = JSON.stringify(data);
+      if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+        console.log("WebSocket não está pronto ou não existe.");
+      } else {
+        websocket.send(dadosParaEnviar);
+      }
     }
   
   };
@@ -384,6 +391,22 @@ async function SA_CheckForProtocolUpdate(codigos_de_protocolos_Para_Pesquisar,ho
   }
   
   if (await waitForElement(page, '.dataTables_wrapper', 10000)) {
+    
+    const divElement = await page.$('.dataTables_wrapper');
+      
+    const selectElement = await divElement.$('select');
+      
+    // Seleciona o valor -1 para mostrar todas as movimentações
+    if (selectElement) {
+      await page.evaluate(select => {
+          select.value = '-1'; // Define o valor do select para "Todos"
+          select.dispatchEvent(new Event('change')); // Dispara o evento change para aplicar a seleção
+      }, selectElement);
+    } else {
+      logToFile('Elemento select não encontrado dentro da div.');
+    }
+    
+    
     const tableData = await page.evaluate(() => {
       const table = document.querySelector('.dataTables_wrapper');
       const rows = Array.from(table.querySelectorAll('tbody tr'));
@@ -431,8 +454,10 @@ async function SA_CheckForProtocolUpdate(codigos_de_protocolos_Para_Pesquisar,ho
     websocket.send(protocolosParaAtualizar.length);
 
     if (protocolosParaAtualizar.length > 0) {
-        logToFile('Protocolos que precisam ser atualizados:', protocolosParaAtualizar);
-        SA_UpdateGridWithFullProtocols(protocolosParaAtualizar.join(","));
+        logToFile('Protocolos que precisam ser atualizados: '+ JSON.stringify(protocolosParaAtualizar));
+        const protocolosParaAtualizarComV = protocolosParaAtualizar.join(",");
+        logToFile( JSON.stringify(protocolosParaAtualizarComV));
+        SA_UpdateGridWithFullProtocols(protocolosParaAtualizarComV,websocket);
     } else {
         logToFile('Não há protocolos para serem atualizados');
     }
