@@ -71,6 +71,10 @@ function clearFiles() {
     "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 01 - SOLICITAÇÃO DE CONTRATAÇÃO",
     "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 02 - PLANEJAMENTO DE CONTRATAÇÃO"
   ];
+  
+  const AssuntosFiltroFiscalização = ["SOLICITAÇÃO DE DIÁRIAS - SEAD- SOLICITAÇÃO DE DIÁRIAS"]
+  
+  
   /*
  "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 04 - LICITAÇÃO",
     "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 05 - EXECUÇÃO",
@@ -82,15 +86,19 @@ function clearFiles() {
     "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 01 - SOLICITAÇÃO DE CONTRATAÇÃO",
     "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 02 - PLANEJAMENTO DE CONTRATAÇÃO",
   */
-  AssuntosFiltroSetores = [AssuntosFiltroLicitacao]; 
+  AssuntosFiltroSetores = [AssuntosFiltroLicitacao,AssuntosFiltroFiscalização]; 
   
   switch (setorFiltro) {
-    case "Licitações":
+    case "Licitacao":
     filtroDeAssuntos = AssuntosFiltroSetores[0]
       break;
-  
+      
+    case "Fiscalizacao":
+    filtroDeAssuntos = AssuntosFiltroSetores[1]
+      break;
+      
     default:
-    logToFile("Nem uma lista de asuntos filtro compatível");
+    logToFile("Nem uma lista de assuntos filtro compatível");
       break;
   }
   
