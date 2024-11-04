@@ -178,6 +178,8 @@ async function SA_UpdateGridWithFullProtocols(codigos_de_protocolos_Para_Pesquis
   
   let protocolosArray = [];
   
+  let buttonIndex = 0;
+  
   logToFile(JSON.stringify(codigos_de_protocolos_Para_Pesquisar));
   
   if (!codigos_de_protocolos_Para_Pesquisar) {
@@ -217,106 +219,124 @@ async function SA_UpdateGridWithFullProtocols(codigos_de_protocolos_Para_Pesquis
     logToFile('Navegando para a página de pesquisa de protocolo.');
   }
   
-  for (const protocoloParaPesquisar of protocolosArray){
-  
+  for (const protocoloParaPesquisar of protocolosArray) {
     await page.goto('https://crea-pe.sitac.com.br/app/view/sight/main?form=PesquisarProtocolo');
     logToFile('Navegando para a página de pesquisa de protocolo.');
-    
+
     const [numero, ano] = protocoloParaPesquisar.split('/');
-    
-    if(await waitForElement(page,'#NUMERO',5000)){
-      await page.type('#NUMERO', numero);
-      logToFile(`Número de protocolo ${numero} inserido.`);
+
+    if (await waitForElement(page, '#NUMERO', 5000)) {
+        await page.type('#NUMERO', numero);
+        logToFile(`Número de protocolo ${numero} inserido.`);
     }
-    
+
     if (await waitForElement(page, '#ANO', 5000)) {
-      await page.type('#ANO', ano); // Insira o ano do protocolo
-      logToFile(`Ano do protocolo ${ano} inserido.`);
-    } 
-    
-    if(await waitForElement(page,'.botao_ver_todos_dados',5000)){
-      await page.click('.botao_ver_todos_dados');
-      logToFile('Botão para ver todos os dados clicado.');
+        await page.type('#ANO', ano);
+        logToFile(`Ano do protocolo ${ano} inserido.`);
     }
-    
-    if (await waitForElement(page, '.ESPACAMENTO', 5000)) {
-      const espancamentoData = await page.evaluate(() => {
-          const elements = Array.from(document.querySelectorAll('.ESPACAMENTO'));
-  
-          return elements.map(element => {
-              const roleElement = element.querySelector('.listar_label_valor label');
-              const infoElement = element.querySelector('.cad_form_cont_campobox .listar_label_result') || 
-                                 element.querySelector('.cad_form_cont_campo .listar_label_result'); // Busca em ambas as classes
-              
-              // Verifica se roleElement e infoElement existem
-              if (roleElement && infoElement) {
-                  const roleText = roleElement.innerText.trim();
-                  const infoText = infoElement.innerText.trim();
-  
-                  // Verifica se o roleElement é "Descrição: "
-                  if (roleText === "Descrição: ") {
-                      return infoText.length > 2 ? infoText : "Sem Descrição";
-                  } 
-                  
-                  // Verifica se roleElement e infoText não estão vazios
-                  if (roleText && infoText) {
-                      return `${roleText}: ${infoText}`;
-                  }
-              }
-          }).filter(item => item);
-      });
-  
-      // Armazena os dados do cabeçalho na variável data
-      if (espancamentoData.length > 0) {
-          data.Header = espancamentoData;
-      }
+
+    // Aguarda até que os botões estejam disponíveis
+    if (await waitForElement(page, '.botao_ver_todos_dados', 5000)) {
+        let botoes = await page.$$('.botao_ver_todos_dados'); // Seleciona todos os botões "Ver todos os dados"
+        let buttonIndex = 0; // Redefine o índice do botão para cada protocolo
+
+        // Se houver botões, interaja com eles um a um
+        while (buttonIndex < botoes.length) {
+            botoes = await page.$$('.botao_ver_todos_dados'); // Atualiza a lista de botões
+            const botao = botoes[buttonIndex]; // Obtém o botão no índice atual
+            
+            await botao.click();
+            logToFile(`Botão para ver todos os dados clicado (índice: ${buttonIndex}).`);
+
+            // Aguarda o carregamento dos dados da página
+            if (await waitForElement(page, '.ESPACAMENTO', 10000)) {
+                const espancamentoData = await page.evaluate(() => {
+                    const elements = Array.from(document.querySelectorAll('.ESPACAMENTO'));
+
+                    return elements.map(element => {
+                        const roleElement = element.querySelector('.listar_label_valor label');
+                        const infoElement = element.querySelector('.cad_form_cont_campobox .listar_label_result') ||
+                                            element.querySelector('.cad_form_cont_campo .listar_label_result');
+
+                        if (roleElement && infoElement) {
+                            const roleText = roleElement.innerText.trim();
+                            const infoText = infoElement.innerText.trim();
+
+                            if (roleText === "Descrição: ") {
+                                return infoText.length > 2 ? infoText : "Sem Descrição";
+                            }
+                            if (roleText && infoText) {
+                                return `${roleText}: ${infoText}`;
+                            }
+                        }
+                    }).filter(item => item);
+                });
+
+                if (espancamentoData.length > 0) {
+                    data.Header = espancamentoData;
+                }
+            }
+
+            if (await waitForElement(page, '#ResultAjax_movimento', 60000)) {
+                const divElement = await page.$('#ResultAjax_movimento');
+                const selectElement = await divElement.$('select');
+
+                if (selectElement) {
+                    await page.evaluate(select => {
+                        select.value = '-1';
+                        select.dispatchEvent(new Event('change'));
+                    }, selectElement);
+                } else {
+                    logToFile('Elemento select não encontrado dentro da div.');
+                }
+
+                const tableData = await page.evaluate(() => {
+                    const table = document.querySelector('#ResultAjax_movimento');
+                    const rows = Array.from(table.querySelectorAll('tbody tr'));
+                    return rows.map(row => {
+                        const columns = Array.from(row.querySelectorAll('td'));
+                        return columns.slice(0, 9).map(column => column.innerText);
+                    });
+                });
+
+                data.Moves = tableData;
+
+                logToFile('Resultados da tabela salvos. \n' + JSON.stringify(data));
+
+                const dadosParaEnviar = JSON.stringify(data);
+                if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+                    console.log("WebSocket não está pronto ou não existe.");
+                } else {
+                    websocket.send(dadosParaEnviar);
+                }
+            }
+
+            // Incrementa o índice do botão
+            buttonIndex++;
+
+            // Volta para a página de pesquisa para escolher o próximo botão
+            await page.goto('https://crea-pe.sitac.com.br/app/view/sight/main?form=PesquisarProtocolo');
+            if (await waitForElement(page, '#NUMERO', 5000)) {
+                await page.type('#NUMERO', numero);
+                logToFile(`Número de protocolo ${numero} inserido.`);
+            }
+
+            if (await waitForElement(page, '#ANO', 5000)) {
+                await page.type('#ANO', ano);
+                logToFile(`Ano do protocolo ${ano} inserido.`);
+            }
+            await waitForElement(page, '.botao_ver_todos_dados', 10000); // Aguarda os botões estarem disponíveis novamente
+        }
     }
-  
-    // Aguarda o carregamento do menu de movimentação
-    if(await waitForElement(page,'#ResultAjax_movimento',60000)){
-      const divElement = await page.$('#ResultAjax_movimento');
-      
-      const selectElement = await divElement.$('select');
-      
-      // Seleciona o valor -1 para mostrar todas as movimentações
-      if (selectElement) {
-        await page.evaluate(select => {
-            select.value = '-1'; // Define o valor do select para "Todos"
-            select.dispatchEvent(new Event('change')); // Dispara o evento change para aplicar a seleção
-        }, selectElement);
-      } else {
-        logToFile('Elemento select não encontrado dentro da div.');
-      }
-      
-      // Avalia a tabela de movimentações
-      const tableData = await page.evaluate(() => {
-        const table = document.querySelector('#ResultAjax_movimento');
-        const rows = Array.from(table.querySelectorAll('tbody tr'));
-        return rows.map(row => {
-          const columns = Array.from(row.querySelectorAll('td'));
-          return columns.slice(0, 9).map(column => column.innerText);
-        });
-      });
-      
-      data.Moves = tableData;
-      
-      logToFile('Resultados da tabela salvos. \n' + JSON.stringify(data));
-      
-      const dadosParaEnviar = JSON.stringify(data);
-      if (!websocket || websocket.readyState !== WebSocket.OPEN) {
-        console.log("WebSocket não está pronto ou não existe.");
-      } else {
-        websocket.send(dadosParaEnviar);
-      }
-    }
-  
-  };
+  }
+
+
+
+
   
   await browser.close();
   logToFile('Navegador fechado. Script concluído.');
     
-  
-
 }
 async function SA_CheckForProtocolUpdate(codigos_de_protocolos_Para_Pesquisar,horasUltimoMovimento, websocket) {
   

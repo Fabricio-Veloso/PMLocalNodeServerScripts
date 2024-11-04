@@ -72,8 +72,18 @@ function clearFiles() {
     "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 02 - PLANEJAMENTO DE CONTRATAÇÃO"
   ];
   
-  const AssuntosFiltroFiscalização = ["SOLICITAÇÃO DE DIÁRIAS - SEAD- SOLICITAÇÃO DE DIÁRIAS"]
+  const AssuntosFiltroFiscalização = [
+  "SOLICITAÇÃO DE DIÁRIAS - SEAD- SOLICITAÇÃO DE DIÁRIAS",
+  "FISCALIZAÇÃO - DEFESA DE AUTO DE INFRAÇÃO",
+  "FISCALIZAÇÃO - PROCESSO FISCAL-DEFESA AUTO DE INFRAÇÃO"
+  ]
   
+  const AssuntosFiltroAtendimento= [
+  "PROFISSIONAL - ENTREGA DE CARTEIRA","CREA-NET-DESCONTO - Reativação de Registro de Profissional",
+  "PROFISSIONAL - Substituição de Registro de Provisório para Definitivo",
+  "PROFISSIONAL - SEGUNDA VIA DE CARTEIRA POR EXTRAVIO / ALTERAÇÃO",
+  "CREA-NET-PROFISSIONAL - Atualização Cadastral do Profissional"
+  ];
   
   /*
  "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 04 - LICITAÇÃO",
@@ -86,7 +96,7 @@ function clearFiles() {
     "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 01 - SOLICITAÇÃO DE CONTRATAÇÃO",
     "PROCESSO DE AQUISIÇÕES DE BENS E SERVIÇOS - PABS - CREA-PE - 02 - PLANEJAMENTO DE CONTRATAÇÃO",
   */
-  AssuntosFiltroSetores = [AssuntosFiltroLicitacao,AssuntosFiltroFiscalização]; 
+  AssuntosFiltroSetores = [AssuntosFiltroLicitacao,AssuntosFiltroFiscalização,AssuntosFiltroAtendimento]; 
   
   switch (setorFiltro) {
     case "Licitacao":
@@ -95,6 +105,12 @@ function clearFiles() {
       
     case "Fiscalizacao":
     filtroDeAssuntos = AssuntosFiltroSetores[1]
+    semFiltroDeStatus = true
+    filtroDataFiscalizacao = true
+      break;
+    
+    case "Atendimento":
+      filtroDeAssuntos = AssuntosFiltroSetores[2]
       break;
       
     default:
@@ -154,14 +170,17 @@ function clearFiles() {
     
   }
 
-  if(await waitForElement(page,'#EVTSTATUS',5000)){
-    await page.click('#EVTSTATUS');
-    logToFile(`Check box de status clicada`);
-    await page.click('#STATUS_chosen');
-    logToFile('escrevendo Ativo');
-    await page.type('.search-field input[type="text"]', 'aberto');
-    await page.keyboard.press('Enter');
+  if(semFiltroDeStatus = false){
+    if(await waitForElement(page,'#EVTSTATUS',5000)){
+      await page.click('#EVTSTATUS');
+      logToFile(`Check box de status clicada`);
+      await page.click('#STATUS_chosen');
+      logToFile('escrevendo Ativo');
+      await page.type('.search-field input[type="text"]', 'aberto');
+      await page.keyboard.press('Enter');
+    }
   }
+  
   
   //
   
@@ -172,13 +191,16 @@ function clearFiles() {
     const dataInicioSelector = `${parentSelector} #DATA_INICIO`;
     await page.waitForSelector(dataInicioSelector);
     //await page.click(dataInicioSelector, { clickCount: 3 }); // Seleciona o campo inteiro
-    await page.type(dataInicioSelector, '01/01/2023'); // Substitua pela data desejada
+    if(filtroDataFiscalizacao = false){
+      await page.type(dataInicioSelector, '01/01/2023'); // Substitua pela data desejada
+      }else{ await page.type(dataInicioSelector, '23/10/2024');} // Substitua pela data desejada}
+   
 
     // Preenche o campo "DATA_FIM" dentro do contêiner pai
     const dataFimSelector = `${parentSelector} #DATA_FIM`;
     await page.waitForSelector(dataFimSelector);
     //await page.click(dataFimSelector, { clickCount: 3 }); // Seleciona o campo inteiro
-    await page.type(dataFimSelector, '31/12/2024'); 
+    await page.type(dataFimSelector, '31/12/2025'); 
     
   }
   
@@ -192,7 +214,7 @@ function clearFiles() {
     await page.click('.botao_informacao');
   }
 
-  if(await waitForElement(page,'.dataTables_wrapper',10000)){
+  if(await waitForElement(page,'.dataTables_wrapper',15000)){
   
     const divElement = await page.$('.dataTables_wrapper')
     const selectElement = await divElement.$('select');
