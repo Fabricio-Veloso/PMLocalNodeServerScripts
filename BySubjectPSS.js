@@ -82,7 +82,8 @@ function clearFiles() {
   "PROFISSIONAL - ENTREGA DE CARTEIRA","CREA-NET-DESCONTO - Reativação de Registro de Profissional",
   "PROFISSIONAL - Substituição de Registro de Provisório para Definitivo",
   "PROFISSIONAL - SEGUNDA VIA DE CARTEIRA POR EXTRAVIO / ALTERAÇÃO",
-  "CREA-NET-PROFISSIONAL - Atualização Cadastral do Profissional"
+  "CREA-NET-PROFISSIONAL - Atualização Cadastral do Profissional",
+  "PROFISSIONAL - INTERRUPÇÃO DE REGISTRO - PROFISSIONAL"
   ];
   
   /*
@@ -101,6 +102,8 @@ function clearFiles() {
   switch (setorFiltro) {
     case "Licitacao":
     filtroDeAssuntos = AssuntosFiltroSetores[0]
+    semFiltroDeStatus = false
+    filtroDataFiscalizacao = false
       break;
       
     case "Fiscalizacao":
@@ -170,7 +173,7 @@ function clearFiles() {
     
   }
 
-  if(semFiltroDeStatus = false){
+  if(semFiltroDeStatus == false){
     if(await waitForElement(page,'#EVTSTATUS',5000)){
       await page.click('#EVTSTATUS');
       logToFile(`Check box de status clicada`);
@@ -191,9 +194,15 @@ function clearFiles() {
     const dataInicioSelector = `${parentSelector} #DATA_INICIO`;
     await page.waitForSelector(dataInicioSelector);
     //await page.click(dataInicioSelector, { clickCount: 3 }); // Seleciona o campo inteiro
-    if(filtroDataFiscalizacao = false){
-      await page.type(dataInicioSelector, '01/01/2023'); // Substitua pela data desejada
-      }else{ await page.type(dataInicioSelector, '23/10/2024');} // Substitua pela data desejada}
+    if(filtroDataFiscalizacao == true){
+      await page.type(dataInicioSelector, '23/10/2024');
+      
+       // Substitua pela data desejada
+      }
+    if(filtroDataFiscalizacao == false){ 
+      await page.type(dataInicioSelector, '01/01/2023');
+      
+    } // Substitua pela data desejada}
    
 
     // Preenche o campo "DATA_FIM" dentro do contêiner pai
